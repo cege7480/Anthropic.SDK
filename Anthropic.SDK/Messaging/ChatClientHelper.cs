@@ -126,10 +126,16 @@ namespace Anthropic.SDK.Messaging
 
                                 if (mcpt.AllowedTools is not null)
                                 {
-                                    mcpServer.ToolConfiguration.AllowedTools.AddRange(mcpt.AllowedTools);
+                                    (mcpServer.ToolConfiguration ??= new MCPToolConfiguration()).AllowedTools.AddRange(mcpt.AllowedTools);
                                 }
 
-                                mcpServer.AuthorizationToken = mcpt.AuthorizationToken;
+                                // In MEAI 10.4.1+, authentication is passed via Headers instead of AuthorizationToken
+                                if (mcpt.Headers != null && mcpt.Headers.TryGetValue("Authorization", out var authHeader) && authHeader != null)
+                                {
+                                    mcpServer.AuthorizationToken = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                                        ? authHeader.Substring("Bearer ".Length)
+                                        : authHeader;
+                                }
 
                                 (parameters.MCPServers ??= []).Add(mcpServer);
                                 break;
